@@ -16,23 +16,29 @@ export async function POST(req: NextRequest) {
     const response = await fetch('https://telegra.ph/upload', {
       method: 'POST',
       body: telegraphFormData,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
     })
 
     if (!response.ok) {
-      return NextResponse.json({ error: 'Telegraph serveriga yuklashda xato' }, { status: 500 })
+      const errorText = await response.text()
+      console.error('Telegraph error response:', errorText)
+      return NextResponse.json({ error: `Telegraph server xatosi: ${response.status}` }, { status: 500 })
     }
 
     const data = await response.json()
+    console.log('Telegraph success response:', data)
     
-    if (data.error) {
-      return NextResponse.json({ error: data.error }, { status: 400 })
+    if (data.error || !Array.isArray(data) || data.length === 0) {
+      return NextResponse.json({ error: data.error || 'Noma'lum xato' }, { status: 400 })
     }
 
     // Telegraph returns an array of results
     const imageUrl = 'https://telegra.ph' + data[0].src
     return NextResponse.json({ url: imageUrl })
-  } catch (err) {
-    console.error('Upload error:', err)
-    return NextResponse.json({ error: 'Server xatosi' }, { status: 500 })
+  } catch (err: any) {
+    console.error('Upload error details:', err.message || err)
+    return NextResponse.json({ error: `Server xatosi: ${err.message || 'Noma\'lum'}` }, { status: 500 })
   }
 }
