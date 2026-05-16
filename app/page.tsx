@@ -35,12 +35,14 @@ export default function Home() {
 
   const uploadToTelegraph = async (f: File): Promise<string> => {
     const fd = new FormData()
-    fd.append('file', f, f.name)
-    const res = await fetch('https://telegra.ph/upload', { method: 'POST', body: fd })
-    if (!res.ok) throw new Error('Rasm yuklanmadi')
+    fd.append('file', f)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    if (!res.ok) {
+      const errorData = await res.json()
+      throw new Error(errorData.error || 'Rasm yuklanmadi')
+    }
     const data = await res.json()
-    if (data.error) throw new Error(data.error)
-    return 'https://telegra.ph' + data[0].src
+    return data.url
   }
 
   const generate = async () => {
