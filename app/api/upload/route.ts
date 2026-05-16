@@ -2,16 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
+    const contentType = req.headers.get('content-type') || ''
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json({ error: 'Faqat multipart/form-data qabul qilinadi' }, { status: 400 })
+    }
+
     const formData = await req.formData()
-    const file = formData.get('file') as File
+    const file = formData.get('file') as File | null
 
     if (!file) {
       return NextResponse.json({ error: 'Fayl topilmadi' }, { status: 400 })
     }
 
-    // Proxy request to Telegraph
+    // Convert File to Blob for Telegraph compatibility
+    const arrayBuffer = await file.arrayBuffer()
+    const blob = new Blob([arrayBuffer], { type: file.type || 'image/png' })
+
     const telegraphFormData = new FormData()
-    telegraphFormData.append('file', file)
+    telegraphFormData.append('file', blob, file.name || 'image.png')
+
+    console.log(`Uploading to Telegraph: ${file.name}, size: ${file.size} bytes`)
 
     const response = await fetch('https://telegra.ph/upload', {
       method: 'POST',
@@ -23,22 +33,37 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Telegraph error response:', errorText)
-      return NextResponse.json({ error: `Telegraph server xatosi: ${response.status}` }, { status: 500 })
+      console.error('Telegraph error status:', response.status)
+      console.error('Telegraph error body:', errorText)
+      return NextResponse.json({ 
+        error: `Telegraph server xatosi: ${response.status}`,
+        details: errorText.slice(0, 100)
+      }, { status: 500 })
     }
 
     const data = await response.json()
-    console.log('Telegraph success response:', data)
+    console.log('Telegraph response:', JSON.stringify(data))
     
-    if (data.error || !Array.isArray(data) || data.length === 0) {
-      return NextResponse.json({ error: data.error || "Noma'lum xato" }, { status: 400 })
+    if (!Array.isArray(data) || data.length === 0) {
+      return NextResponse.json({ 
+        error: 'Telegraph noto\'g\'ri formatda javob qaytardi',
+        data: data
+      }, { status: 500 })
     }
 
-    // Telegraph returns an array of results
+    if (data[0].error) {
+      return NextResponse.json({ error: data[0].error }, { status: 400 })
+    }
+
     const imageUrl = 'https://telegra.ph' + data[0].src
     return NextResponse.json({ url: imageUrl })
+
   } catch (err: any) {
-    console.error('Upload error details:', err.message || err)
-    return NextResponse.json({ error: `Server xatosi: ${err.message || "Noma'lum"}` }, { status: 500 })
+    console.error('API Upload Critical Error:', err)
+    return NextResponse.json({ 
+      error: 'Server xatosi', 
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, { status: 500 })
   }
 }
