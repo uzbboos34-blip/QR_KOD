@@ -56,20 +56,24 @@ export default function QRGenerator() {
     try {
       // Upload file to get URL via proxy to catbox.moe
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("image", file);
 
-      // Using 0x0.st (extremely simple and usually supports direct uploads)
-      const response = await axios.post("https://0x0.st", formData);
+      // Using Imgur API (extremely stable and widely used)
+      const response = await axios.post("https://api.imgur.com/3/image", formData, {
+        headers: {
+          Authorization: "Client-ID 546c25a59c58ad7"
+        }
+      });
 
-      if (response.data && typeof response.data === "string" && response.data.startsWith("http")) {
-        const file_url = response.data.trim();
+      if (response.data && response.data.data && response.data.data.link) {
+        const file_url = response.data.data.link;
         setUploadedImageUrl(file_url);
         
         // Generate QR code from the image URL
         const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
         setImageQrDataUrl(qr);
       } else {
-        throw new Error("Invalid response from 0x0.st");
+        throw new Error("Invalid response from Imgur");
       }
     } catch (error) {
       console.error("Image upload failed:", error);
