@@ -14,18 +14,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Fayl topilmadi' }, { status: 400 })
     }
 
-    // Convert File to Blob for Telegraph compatibility
-    const arrayBuffer = await file.arrayBuffer()
-    const blob = new Blob([arrayBuffer], { type: file.type || 'image/png' })
-
-    const telegraphFormData = new FormData()
-    telegraphFormData.append('file', blob, file.name || 'image.png')
-
     console.log(`Uploading to Telegraph: ${file.name}, size: ${file.size} bytes`)
 
+    // Forward the exact same FormData to Telegraph
     const response = await fetch('https://telegra.ph/upload', {
       method: 'POST',
-      body: telegraphFormData,
+      body: formData,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
@@ -38,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         error: `Telegraph server xatosi: ${response.status}`,
         details: errorText.slice(0, 100)
-      }, { status: 500 })
+      }, { status: 400 }) // Return 400 so we know it's an upstream error, not our crash
     }
 
     const data = await response.json()
@@ -48,7 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         error: 'Telegraph noto\'g\'ri formatda javob qaytardi',
         data: data
-      }, { status: 500 })
+      }, { status: 400 })
     }
 
     if (data[0].error) {
