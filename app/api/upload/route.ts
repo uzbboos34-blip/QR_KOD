@@ -7,38 +7,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faqat multipart/form-data qabul qilinadi' }, { status: 400 })
     }
 
-    // We use a transparent proxy approach: we read the exact raw body sent by the browser
-    // and forward it to Telegraph. This preserves the boundaries and filename perfectly.
-    const bodyBuffer = await req.arrayBuffer()
+    // Parse the incoming form data
+    const formData = await req.formData()
+    const file = formData.get('file') as File | null
 
-    console.log(`Forwarding raw body to Telegraph, size: ${bodyBuffer.byteLength} bytes`)
+    if (!file) {
+      return NextResponse.json({ error: "Fayl topilmadi. 'file' field yuborish kerak" }, { status: 400 })
+    }
+
+    console.log(`Uploading file to Telegraph: ${file.name}, size: ${file.size} bytes, type: ${file.type}`)
+
+    // Rebuild a fresh FormData to send to Telegraph
+    const telegraphForm = new FormData()
+    telegraphForm.append('file', file, file.name)
 
     const response = await fetch('https://telegra.ph/upload', {
       method: 'POST',
-      body: bodyBuffer,
+      body: telegraphForm,
       headers: {
-        'Content-Type': contentType,
-        'Content-Length': bodyBuffer.byteLength.toString(),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Origin': 'https://telegra.ph',
+        'Referer': 'https://telegra.ph/',
       }
     })
 
+    const responseText = await response.text()
+    console.log('Telegraph status:', response.status)
+    console.log('Telegraph response:', responseText)
+
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Telegraph error status:', response.status)
-      console.error('Telegraph error body:', errorText)
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: `Telegraph server xatosi: ${response.status}`,
-        details: errorText.slice(0, 100)
-      }, { status: 400 }) // Return 400 so we know it's an upstream error, not our crash
+        details: responseText.slice(0, 200)
+      }, { status: 400 })
     }
 
-    const data = await response.json()
-    console.log('Telegraph response:', JSON.stringify(data))
-    
+    let data: any
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      return NextResponse.json({
+        error: "Telegraph noto'g'ri formatda javob qaytardi",
+        raw: responseText.slice(0, 200)
+      }, { status: 400 })
+    }
+
     if (!Array.isArray(data) || data.length === 0) {
-      return NextResponse.json({ 
-        error: 'Telegraph noto\'g\'ri formatda javob qaytardi',
+      return NextResponse.json({
+        error: "Telegraph bo'sh javob qaytardi",
         data: data
       }, { status: 400 })
     }
@@ -47,13 +64,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: data[0].error }, { status: 400 })
     }
 
+    if (!data[0].src) {
+      return NextResponse.json({
+        error: "Telegraph javobida 'src' yo'q",
+        data: data[0]
+      }, { status: 400 })
+    }
+
     const imageUrl = 'https://telegra.ph' + data[0].src
     return NextResponse.json({ url: imageUrl })
 
   } catch (err: any) {
     console.error('API Upload Critical Error:', err)
-    return NextResponse.json({ 
-      error: 'Server xatosi', 
+    return NextResponse.json({
+      error: 'Server xatosi',
       message: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     }, { status: 500 })
