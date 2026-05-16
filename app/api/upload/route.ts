@@ -7,20 +7,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faqat multipart/form-data qabul qilinadi' }, { status: 400 })
     }
 
-    const formData = await req.formData()
-    const file = formData.get('file') as File | null
+    // We use a transparent proxy approach: we read the exact raw body sent by the browser
+    // and forward it to Telegraph. This preserves the boundaries and filename perfectly.
+    const bodyBuffer = await req.arrayBuffer()
 
-    if (!file) {
-      return NextResponse.json({ error: 'Fayl topilmadi' }, { status: 400 })
-    }
+    console.log(`Forwarding raw body to Telegraph, size: ${bodyBuffer.byteLength} bytes`)
 
-    console.log(`Uploading to Telegraph: ${file.name}, size: ${file.size} bytes`)
-
-    // Forward the exact same FormData to Telegraph
     const response = await fetch('https://telegra.ph/upload', {
       method: 'POST',
-      body: formData,
+      body: bodyBuffer,
       headers: {
+        'Content-Type': contentType,
+        'Content-Length': bodyBuffer.byteLength.toString(),
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     })
