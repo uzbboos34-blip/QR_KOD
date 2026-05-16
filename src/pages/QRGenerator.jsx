@@ -52,27 +52,32 @@ export default function QRGenerator() {
     reader.onload = (ev) => setUploadedImagePreview(ev.target.result);
     reader.readAsDataURL(file);
 
-    // Convert file to Base64 for more reliable upload
-    const toBase64 = file => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = error => reject(error);
-    });
+    // Convert file to Base64
+    const toBase64 = (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = (error) => reject(error);
+      });
 
     setImageLoading(true);
     try {
       const base64Image = await toBase64(file);
-      const formData = new FormData();
-      formData.append("image", base64Image);
 
-      // Using ImgBB with Base64 (highly reliable)
-      const response = await axios.post("https://api.imgbb.com/1/upload?key=6d207e02198a847aa98d0a2a901485a5", formData);
+      // URLSearchParams — ImgBB uchun eng ishonchli usul
+      const response = await axios.post(
+        "https://api.imgbb.com/1/upload",
+        new URLSearchParams({
+          key: "6d207e02198a847aa98d0a2a901485a5",
+          image: base64Image,
+        })
+      );
 
       if (response.data && response.data.data && response.data.data.url) {
         const file_url = response.data.data.url;
         setUploadedImageUrl(file_url);
-        
+
         // Generate QR code from the image URL
         const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
         setImageQrDataUrl(qr);
