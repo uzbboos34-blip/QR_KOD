@@ -58,15 +58,20 @@ export default function QRGenerator() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await axios.post("/api/upload", formData);
+      // Uploading directly to telegra.ph (it supports CORS)
+      const response = await axios.post("https://telegra.ph/upload", formData);
 
       // Telegra.ph returns [{ "src": "/file/..." }]
-      const file_url = `https://telegra.ph${response.data[0].src}`;
-      setUploadedImageUrl(file_url);
-
-      // Generate QR code from the image URL
-      const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
-      setImageQrDataUrl(qr);
+      if (response.data && response.data[0] && response.data[0].src) {
+        const file_url = `https://telegra.ph${response.data[0].src}`;
+        setUploadedImageUrl(file_url);
+        
+        // Generate QR code from the image URL
+        const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
+        setImageQrDataUrl(qr);
+      } else {
+        throw new Error("Invalid response from upload service");
+      }
     } catch (error) {
       console.error("Image upload failed:", error);
       alert("Rasmni yuklashda xatolik yuz berdi. Iltimos qayta urinib ko'ring.");
