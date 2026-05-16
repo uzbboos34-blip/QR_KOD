@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import axios from 'axios'
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,37 +22,27 @@ export async function POST(req: NextRequest) {
     const telegraphForm = new FormData()
     telegraphForm.append('file', file, file.name)
 
-    const response = await fetch('https://telegra.ph/upload', {
-      method: 'POST',
-      body: telegraphForm,
+    const response = await axios.post('https://telegra.ph/upload', telegraphForm, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json',
         'Origin': 'https://telegra.ph',
         'Referer': 'https://telegra.ph/',
-      }
+      },
+      validateStatus: () => true // Barcha statuslarni o'zimiz ushlaymiz
     })
 
-    const responseText = await response.text()
     console.log('Telegraph status:', response.status)
-    console.log('Telegraph response:', responseText)
+    console.log('Telegraph response:', response.data)
 
-    if (!response.ok) {
+    if (response.status >= 400) {
       return NextResponse.json({
         error: `Telegraph server xatosi: ${response.status}`,
-        details: responseText.slice(0, 200)
+        details: typeof response.data === 'string' ? response.data.slice(0, 200) : JSON.stringify(response.data)
       }, { status: 400 })
     }
 
-    let data: any
-    try {
-      data = JSON.parse(responseText)
-    } catch {
-      return NextResponse.json({
-        error: "Telegraph noto'g'ri formatda javob qaytardi",
-        raw: responseText.slice(0, 200)
-      }, { status: 400 })
-    }
+    const data = response.data;
 
     if (!Array.isArray(data) || data.length === 0) {
       return NextResponse.json({
