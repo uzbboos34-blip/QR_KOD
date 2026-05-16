@@ -58,19 +58,18 @@ export default function QRGenerator() {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Uploading directly to telegra.ph (it supports CORS)
-      const response = await axios.post("https://telegra.ph/upload", formData);
+      // Using 0x0.st (extremely simple and usually supports direct uploads)
+      const response = await axios.post("https://0x0.st", formData);
 
-      // Telegra.ph returns [{ "src": "/file/..." }]
-      if (response.data && response.data[0] && response.data[0].src) {
-        const file_url = `https://telegra.ph${response.data[0].src}`;
+      if (response.data && typeof response.data === "string" && response.data.startsWith("http")) {
+        const file_url = response.data.trim();
         setUploadedImageUrl(file_url);
         
         // Generate QR code from the image URL
         const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
         setImageQrDataUrl(qr);
       } else {
-        throw new Error("Invalid response from upload service");
+        throw new Error("Invalid response from 0x0.st");
       }
     } catch (error) {
       console.error("Image upload failed:", error);
