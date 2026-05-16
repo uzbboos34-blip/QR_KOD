@@ -69,7 +69,7 @@ export default function QRGenerator() {
       const response = await axios.post(
         "https://api.imgbb.com/1/upload",
         new URLSearchParams({
-          key: "6d207e02198a847aa98d0a2a901485a5",
+          key: "802ce3485c47dcb8a667c35ce3e626bd",
           image: base64Image,
         })
       );
