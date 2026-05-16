@@ -59,9 +59,7 @@ export default function QRGenerator() {
       formData.append("reqtype", "fileupload");
       formData.append("fileToUpload", file);
 
-      const response = await axios.post("/api/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await axios.post("/api/upload", formData);
 
       const file_url = response.data; // Catbox returns URL as plain text
       setUploadedImageUrl(file_url);
