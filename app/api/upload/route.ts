@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     console.log('Telegraph success response:', data)
     
     if (data.error || !Array.isArray(data) || data.length === 0) {
-      return NextResponse.json({ error: data.error || 'Noma'lum xato' }, { status: 400 })
+      return NextResponse.json({ error: data.error || "Noma'lum xato" }, { status: 400 })
     }
 
     // Telegraph returns an array of results
@@ -39,6 +39,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: imageUrl })
   } catch (err: any) {
     console.error('Upload error details:', err.message || err)
-    return NextResponse.json({ error: `Server xatosi: ${err.message || 'Noma\'lum'}` }, { status: 500 })
+    return NextResponse.json({ error: `Server xatosi: ${err.message || "Noma'lum"}` }, { status: 500 })
   }
 }
