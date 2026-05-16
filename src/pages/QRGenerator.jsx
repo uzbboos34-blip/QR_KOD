@@ -52,28 +52,32 @@ export default function QRGenerator() {
     reader.onload = (ev) => setUploadedImagePreview(ev.target.result);
     reader.readAsDataURL(file);
 
+    // Convert file to Base64 for more reliable upload
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
+
     setImageLoading(true);
     try {
-      // Upload file to get URL via proxy to catbox.moe
+      const base64Image = await toBase64(file);
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", base64Image);
 
-      // Using Imgur API (extremely stable and widely used)
-      const response = await axios.post("https://api.imgur.com/3/image", formData, {
-        headers: {
-          Authorization: "Client-ID 546c25a59c58ad7"
-        }
-      });
+      // Using ImgBB with Base64 (highly reliable)
+      const response = await axios.post("https://api.imgbb.com/1/upload?key=6d207e02198a847aa98d0a2a901485a5", formData);
 
-      if (response.data && response.data.data && response.data.data.link) {
-        const file_url = response.data.data.link;
+      if (response.data && response.data.data && response.data.data.url) {
+        const file_url = response.data.data.url;
         setUploadedImageUrl(file_url);
         
         // Generate QR code from the image URL
         const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
         setImageQrDataUrl(qr);
       } else {
-        throw new Error("Invalid response from Imgur");
+        throw new Error("Invalid response from ImgBB");
       }
     } catch (error) {
       console.error("Image upload failed:", error);
