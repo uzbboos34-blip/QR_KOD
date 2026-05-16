@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/upload",
-      "destination": "https://catbox.moe/user/api.php"
+      "destination": "https://telegra.ph/upload"
     },
     {
       "source": "/(.*)",

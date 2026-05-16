@@ -56,12 +56,12 @@ export default function QRGenerator() {
     try {
       // Upload file to get URL via proxy to catbox.moe
       const formData = new FormData();
-      formData.append("reqtype", "fileupload");
-      formData.append("fileToUpload", file);
+      formData.append("file", file);
 
       const response = await axios.post("/api/upload", formData);
 
-      const file_url = response.data; // Catbox returns URL as plain text
+      // Telegra.ph returns [{ "src": "/file/..." }]
+      const file_url = `https://telegra.ph${response.data[0].src}`;
       setUploadedImageUrl(file_url);
 
       // Generate QR code from the image URL
