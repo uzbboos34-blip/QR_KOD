@@ -1,7 +1,15 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Vercel serverless uchun global singleton pattern
+const globalForPrisma = global;
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: ['error'],
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
