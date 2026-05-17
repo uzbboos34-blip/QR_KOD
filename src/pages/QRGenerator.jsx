@@ -20,6 +20,9 @@ export default function QRGenerator() {
   const [locationMapUrl, setLocationMapUrl] = useState("");
   const [locationDesc, setLocationDesc] = useState("");
   const [locationQrDataUrl, setLocationQrDataUrl] = useState("");
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedCoords, setSelectedCoords] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [useSmartQR, setUseSmartQR] = useState(true);
@@ -121,6 +124,106 @@ export default function QRGenerator() {
       navigator.clipboard.writeText(targetUrl);
       alert("Havola nusxalandi! Do'stlaringizga yuborishingiz mumkin.");
     }
+  };
+
+  // Geolocation loader - automatically fetches user's current GPS location
+  const handleDetectCurrentLocation = () => {
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLocationMapUrl(`https://www.google.com/maps?q=${lat},${lng}`);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setIsLocating(false);
+        alert("Joylashuvni avtomatik aniqlab bo'lmadi. Iltimos xaritadan tanlang.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Dynamic Leaflet Map picker loader
+  useEffect(() => {
+    if (!showMapModal) return;
+
+    // Load Leaflet CSS
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+
+    // Load Leaflet JS
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    
+    script.onload = () => {
+      const L = window.L;
+      
+      // Attempt to get user GPS coordinate or default to Tashkent
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          initPickerMap(L, pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          initPickerMap(L, 41.311081, 69.240562); // Tashkent default coords
+        }
+      );
+    };
+
+    document.body.appendChild(script);
+
+    return () => {
+      link.remove();
+      script.remove();
+    };
+  }, [showMapModal]);
+
+  const initPickerMap = (L, lat, lng) => {
+    // Check if the container actually exists
+    const container = document.getElementById("map-picker-container");
+    if (!container) return;
+
+    // Clean up old map instance if it was already initialized
+    if (container._leaflet_id) {
+      container.outerHTML = '<div id="map-picker-container" class="w-full h-[320px] rounded-2xl overflow-hidden border border-slate-800"></div>';
+    }
+
+    const map = L.map("map-picker-container").setView([lat, lng], 15);
+    
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    // Draggable marker
+    const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+    
+    const updateCoords = (newLat, newLng) => {
+      setSelectedCoords({ lat: newLat, lng: newLng });
+    };
+
+    // Set default coordinates initially
+    updateCoords(lat, lng);
+
+    marker.on("dragend", () => {
+      const position = marker.getLatLng();
+      updateCoords(position.lat, position.lng);
+    });
+
+    map.on("click", (e) => {
+      marker.setLatLng(e.latlng);
+      updateCoords(e.latlng.lat, e.latlng.lng);
+    });
+  };
+
+  const handleConfirmLocation = () => {
+    if (selectedCoords) {
+      setLocationMapUrl(`https://www.google.com/maps?q=${selectedCoords.lat},${selectedCoords.lng}`);
+    }
+    setShowMapModal(false);
   };
 
   // Handle image upload
@@ -450,14 +553,50 @@ export default function QRGenerator() {
 
               <div className="space-y-2">
                 <Label htmlFor="loc-url" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Google Maps Havolasi</Label>
-                <input
-                  id="loc-url"
-                  type="text"
-                  placeholder="https://maps.app.goo.gl/... yoki havolani kiriting"
-                  value={locationMapUrl}
-                  onChange={(e) => setLocationMapUrl(e.target.value)}
-                  className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm px-4 outline-none"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    id="loc-url"
+                    type="text"
+                    placeholder="Havola yoki pastdagi tugmalar orqali tanlang..."
+                    value={locationMapUrl}
+                    onChange={(e) => setLocationMapUrl(e.target.value)}
+                    className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm pl-4 pr-12 outline-none"
+                  />
+                  <div className="absolute right-2 flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setShowMapModal(true)}
+                      className="w-10 h-10 rounded-xl hover:bg-indigo-500/10 text-indigo-400 hover:text-indigo-300 p-0 flex items-center justify-center transition-all"
+                      title="Xaritadan tanlash"
+                    >
+                      <MapPin className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Quick Map Pickers Helper buttons */}
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDetectCurrentLocation}
+                    disabled={isLocating}
+                    className="flex-1 h-10 rounded-xl border-slate-800 bg-slate-950/20 text-slate-400 hover:text-white font-medium text-xs gap-1.5 transition-all"
+                  >
+                    <MapPin className={`w-3.5 h-3.5 text-indigo-400 ${isLocating ? 'animate-bounce' : ''}`} />
+                    {isLocating ? "Aniqlanmoqda..." : "📍 Hozirgi joylashuvim"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowMapModal(true)}
+                    className="flex-1 h-10 rounded-xl border-slate-800 bg-slate-950/20 text-slate-400 hover:text-white font-medium text-xs gap-1.5 transition-all"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    🗺️ Xaritadan tanlash
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -526,6 +665,55 @@ export default function QRGenerator() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Premium Leaflet Map Picker Modal */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-slate-900 border border-slate-800 rounded-[2rem] w-full max-w-md p-6 shadow-2xl space-y-4 animate-in zoom-in duration-300 text-left">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-indigo-500 animate-bounce" /> Joylashuvni tanlang
+              </h3>
+              <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                OpenStreetMap
+              </span>
+            </div>
+
+            {/* Map Picker Container */}
+            <div 
+              id="map-picker-container" 
+              className="w-full h-[320px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center text-slate-500 text-xs"
+            >
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                <span>Xarita yuklanmoqda...</span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-semibold">
+              Markerni torting yoki kerakli joyni bosing
+            </p>
+
+            {/* Modal Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={() => setShowMapModal(false)}
+                className="flex-1 h-12 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-bold transition-all text-xs"
+              >
+                Bekor qilish
+              </Button>
+              <Button
+                onClick={handleConfirmLocation}
+                className="flex-1 h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-900/20 transition-all text-xs"
+              >
+                Joylashuvni tasdiqlash
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       
     </div>
   );
