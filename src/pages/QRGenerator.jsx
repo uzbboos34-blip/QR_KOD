@@ -78,8 +78,11 @@ export default function QRGenerator() {
         const file_url = response.data.data.url;
         setUploadedImageUrl(file_url);
 
-        // Generate QR code from the image URL
-        const qr = await QRCode.toDataURL(file_url, { width: 300, margin: 2 });
+        const baseUrl = window.location.origin;
+        const smartUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(file_url)}`;
+
+        // Generate QR code from the smart URL
+        const qr = await QRCode.toDataURL(smartUrl, { width: 300, margin: 2 });
         setImageQrDataUrl(qr);
       } else {
         throw new Error("Invalid response from ImgBB");
