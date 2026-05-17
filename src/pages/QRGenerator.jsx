@@ -174,9 +174,6 @@ export default function QRGenerator() {
     }
   };
 
-  useEffect(() => {
-    generateImageQR();
-  }, [uploadedImageUrl, imageDescription]);
 
   // Generate QR for location dynamically
   const generateLocationQR = async () => {
@@ -224,9 +221,6 @@ export default function QRGenerator() {
     }
   };
 
-  useEffect(() => {
-    generateLocationQR();
-  }, [locationTitle, locationMapUrl, locationDesc]);
 
   const handleShareLocationQR = async () => {
     try {
@@ -469,6 +463,7 @@ export default function QRGenerator() {
   const handleConfirmLocation = () => {
     if (selectedCoords) {
       setLocationMapUrl(`https://www.google.com/maps?q=${selectedCoords.lat},${selectedCoords.lng}`);
+      setLocationQrDataUrl(""); // Xarita tanlanganda ham eski QR o'chadi
       if (!locationTitle.trim() && mapSearchQuery.trim()) {
         const shortName = mapSearchQuery.split(",")[0] || mapSearchQuery;
         setLocationTitle(shortName.trim());
@@ -512,6 +507,7 @@ export default function QRGenerator() {
       if (response.data && response.data.data && response.data.data.url) {
         const file_url = response.data.data.url;
         setUploadedImageUrl(file_url);
+        setImageQrDataUrl(""); // Yangi rasm yuklanganda eski QR o'chadi
       } else {
         throw new Error("Invalid response from ImgBB");
       }
@@ -731,11 +727,23 @@ export default function QRGenerator() {
                   id="image-desc"
                   placeholder="Rasm ostida chiqadigan matnni yozing (masalan: tabrik, ism yoki telefon)..."
                   value={imageDescription}
-                  onChange={(e) => setImageDescription(e.target.value.slice(0, 2000))}
+                  onChange={(e) => {
+                    setImageDescription(e.target.value.slice(0, 2000));
+                    setImageQrDataUrl(""); // Matn o'zgarsa eski QR o'chadi
+                  }}
                   className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
                   maxLength={2000}
                 />
               </div>
+            )}
+
+            {uploadedImageUrl && !imageLoading && !imageQrDataUrl && (
+              <Button
+                onClick={generateImageQR}
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl shadow-indigo-900/20 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <QrCode className="w-5 h-5 mr-2" /> QR kodni yaratish
+              </Button>
             )}
 
             {imageQrDataUrl && !imageLoading && (
@@ -797,7 +805,10 @@ export default function QRGenerator() {
                   type="text"
                   placeholder="Joy nomini kiriting..."
                   value={locationTitle}
-                  onChange={(e) => setLocationTitle(e.target.value)}
+                  onChange={(e) => {
+                    setLocationTitle(e.target.value);
+                    setLocationQrDataUrl(""); // Input o'zgarsa eski QR o'chadi
+                  }}
                   className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm px-4 outline-none"
                 />
               </div>
@@ -837,12 +848,24 @@ export default function QRGenerator() {
                   id="loc-desc"
                   placeholder="Ish vaqti, telefon raqam yoki mo'ljal yozishingiz mumkin..."
                   value={locationDesc}
-                  onChange={(e) => setLocationDesc(e.target.value.slice(0, 2000))}
+                  onChange={(e) => {
+                    setLocationDesc(e.target.value.slice(0, 2000));
+                    setLocationQrDataUrl(""); // Input o'zgarsa eski QR o'chadi
+                  }}
                   className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
                   maxLength={2000}
                 />
               </div>
             </div>
+
+            {locationMapUrl && locationTitle && !locationQrDataUrl && (
+              <Button
+                onClick={generateLocationQR}
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg shadow-xl shadow-indigo-900/20 transition-all hover:scale-[1.02] active:scale-95 mt-4"
+              >
+                <QrCode className="w-5 h-5 mr-2" /> QR kodni yaratish
+              </Button>
+            )}
 
             {locationQrDataUrl && (
               <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500 pt-4">
