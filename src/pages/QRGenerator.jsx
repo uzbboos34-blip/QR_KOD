@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Download, Upload, QrCode, Type, Image, Sparkles, Share2, MapPin, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const toLatin = (text) => {
   if (!text) return "";
@@ -117,8 +118,14 @@ export default function QRGenerator() {
       qrValue = `${baseUrl}/scan-result?data=${encodeURIComponent(text)}`;
     }
 
-    const url = await QRCode.toDataURL(qrValue, { width: 300, margin: 2 });
-    setQrDataUrl(url);
+    try {
+      const url = await QRCode.toDataURL(qrValue, { width: 300, margin: 2 });
+      setQrDataUrl(url);
+    } catch (error) {
+      console.error("Failed to generate text QR code:", error);
+      setQrDataUrl("");
+      toast.error("Matn juda uzun! QR kod sig'imiga mos kelmadi, matnni qisqartiring.");
+    }
   };
 
   useEffect(() => {
@@ -142,6 +149,8 @@ export default function QRGenerator() {
       setImageQrDataUrl(qr);
     } catch (error) {
       console.error("Failed to generate image QR code:", error);
+      setImageQrDataUrl("");
+      toast.error("Rasm tagidagi matn juda uzun! Iltimos, qisqaroq yozing.");
     }
   };
 
@@ -165,6 +174,8 @@ export default function QRGenerator() {
       setLocationQrDataUrl(qr);
     } catch (error) {
       console.error("Failed to generate location QR code:", error);
+      setLocationQrDataUrl("");
+      toast.error("Joylashuv ma'lumotlari juda uzun! Iltimos, qisqaroq yozing.");
     }
   };
 
