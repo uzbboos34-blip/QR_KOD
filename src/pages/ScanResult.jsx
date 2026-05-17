@@ -1,14 +1,13 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Download } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ScanResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const data = searchParams.get("data") || "";
-  const [copied, setCopied] = useState(false);
+  const caption = searchParams.get("caption") || "";
 
   const isImageUrl = (url) => {
     if (!url) return false;
@@ -84,6 +83,15 @@ export default function ScanResult() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </div>
+
+            {/* Optional Description / Caption */}
+            {caption && (
+              <div className="w-full mb-6 p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md text-left">
+                <p className="text-slate-300 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap break-words">
+                  {caption}
+                </p>
+              </div>
+            )}
 
             {/* Actions Panel - ONLY Download Button as requested */}
             <div className="w-full">

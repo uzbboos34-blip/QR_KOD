@@ -15,6 +15,7 @@ export default function QRGenerator() {
   const [imageQrDataUrl, setImageQrDataUrl] = useState("");
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploadedImagePreview, setUploadedImagePreview] = useState("");
+  const [imageDescription, setImageDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [useSmartQR, setUseSmartQR] = useState(true);
@@ -41,6 +42,26 @@ export default function QRGenerator() {
       setQrDataUrl("");
     }
   }, [text, useSmartQR]);
+
+  // Generate QR for image and description dynamically
+  const generateImageQR = async () => {
+    if (!uploadedImageUrl) return;
+    try {
+      const baseUrl = window.location.origin;
+      let smartUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(uploadedImageUrl)}`;
+      if (imageDescription.trim()) {
+        smartUrl += `&caption=${encodeURIComponent(imageDescription.trim())}`;
+      }
+      const qr = await QRCode.toDataURL(smartUrl, { width: 300, margin: 2 });
+      setImageQrDataUrl(qr);
+    } catch (error) {
+      console.error("Failed to generate image QR code:", error);
+    }
+  };
+
+  useEffect(() => {
+    generateImageQR();
+  }, [uploadedImageUrl, imageDescription]);
 
   // Handle image upload
   const handleImageUpload = async (e) => {
@@ -77,13 +98,6 @@ export default function QRGenerator() {
       if (response.data && response.data.data && response.data.data.url) {
         const file_url = response.data.data.url;
         setUploadedImageUrl(file_url);
-
-        const baseUrl = window.location.origin;
-        const smartUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(file_url)}`;
-
-        // Generate QR code from the smart URL
-        const qr = await QRCode.toDataURL(smartUrl, { width: 300, margin: 2 });
-        setImageQrDataUrl(qr);
       } else {
         throw new Error("Invalid response from ImgBB");
       }
@@ -251,13 +265,30 @@ export default function QRGenerator() {
               </div>
             )}
 
+            {uploadedImageUrl && !imageLoading && (
+              <div className="space-y-2 text-left animate-in fade-in duration-300">
+                <Label htmlFor="image-desc" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Rasm ostidagi matn (Ixtiyoriy)</Label>
+                <Textarea
+                  id="image-desc"
+                  placeholder="Rasm ostida chiqadigan matnni yozing (masalan: tabrik, ism yoki telefon)..."
+                  value={imageDescription}
+                  onChange={(e) => setImageDescription(e.target.value)}
+                  className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
+                />
+              </div>
+            )}
+
             {imageQrDataUrl && !imageLoading && (
-              <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500">
+              <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500 pt-2">
                 <div 
                   className="relative p-4 bg-white rounded-3xl shadow-2xl group cursor-pointer"
                   onClick={() => {
                     const baseUrl = window.location.origin;
-                    window.open(`${baseUrl}/scan-result?data=${encodeURIComponent(uploadedImageUrl)}`, "_blank");
+                    let targetUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(uploadedImageUrl)}`;
+                    if (imageDescription.trim()) {
+                      targetUrl += `&caption=${encodeURIComponent(imageDescription.trim())}`;
+                    }
+                    window.open(targetUrl, "_blank");
                   }}
                 >
                   <img
