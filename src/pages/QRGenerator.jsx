@@ -290,10 +290,6 @@ export default function QRGenerator() {
         </Tabs>
       </div>
       
-      {/* Footer / Info */}
-      <div className="absolute bottom-8 text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em] pointer-events-none">
-        Powered by Base44 & Antigravity
-      </div>
     </div>
   );
 }
