@@ -26,6 +26,7 @@ export default function QRGenerator() {
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [isSearchingMap, setIsSearchingMap] = useState(false);
   const [isLocatingPicker, setIsLocatingPicker] = useState(false);
+  const [mapSearchSuggestions, setMapSearchSuggestions] = useState([]);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -253,44 +254,40 @@ export default function QRGenerator() {
     setIsSearchingMap(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery.trim())}`
+        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
       );
       const data = await response.json();
       if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lng = parseFloat(data[0].lon);
-        mapRef.current.setView([lat, lng], 16);
-        markerRef.current.setLatLng([lat, lng]);
-        setSelectedCoords({ lat, lng });
+        setMapSearchSuggestions(data);
       } else {
-        alert("Ushbu manzil topilmadi. Iltimos qayta kiriting.");
+        setMapSearchSuggestions([]);
       }
     } catch (err) {
       console.error(err);
-      alert("Qidiruvda xatolik yuz berdi.");
     } finally {
       setIsSearchingMap(false);
     }
   };
 
-  // Auto-search Nominatim API on search query typing with 600ms debounce
+  // Auto-search Nominatim API on search query typing with 500ms debounce to fetch suggestions (limited strictly to Uzbekistan)
   useEffect(() => {
-    if (!mapSearchQuery.trim() || !mapRef.current || !markerRef.current) return;
+    if (!mapSearchQuery.trim() || !mapRef.current || !markerRef.current) {
+      setMapSearchSuggestions([]);
+      return;
+    }
     
     const delayDebounceFn = setTimeout(() => {
-      const autoSearch = async () => {
+      const fetchSuggestions = async () => {
         setIsSearchingMap(true);
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery.trim())}`
+            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
           );
           const data = await response.json();
           if (data && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lng = parseFloat(data[0].lon);
-            mapRef.current.setView([lat, lng], 16);
-            markerRef.current.setLatLng([lat, lng]);
-            setSelectedCoords({ lat, lng });
+            setMapSearchSuggestions(data);
+          } else {
+            setMapSearchSuggestions([]);
           }
         } catch (err) {
           console.error(err);
@@ -298,11 +295,25 @@ export default function QRGenerator() {
           setIsSearchingMap(false);
         }
       };
-      autoSearch();
-    }, 600);
+      fetchSuggestions();
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [mapSearchQuery]);
+
+  const handleSelectSuggestion = (suggestion) => {
+    if (!mapRef.current || !markerRef.current) return;
+    const lat = parseFloat(suggestion.lat);
+    const lng = parseFloat(suggestion.lon);
+    
+    mapRef.current.setView([lat, lng], 16);
+    markerRef.current.setLatLng([lat, lng]);
+    setSelectedCoords({ lat, lng });
+    
+    // Fill input with display name and close suggestions
+    setMapSearchQuery(suggestion.display_name);
+    setMapSearchSuggestions([]);
+  };
 
   const handleConfirmLocation = () => {
     if (selectedCoords) {
@@ -759,6 +770,23 @@ export default function QRGenerator() {
               <Search className="absolute left-3 top-3 w-4 h-4 text-slate-600" />
               {isSearchingMap && (
                 <div className="absolute right-3 top-[14px] w-4 h-4 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+              )}
+
+              {/* Suggestions Dropdown */}
+              {mapSearchSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 z-[100] mt-1 bg-slate-950/95 backdrop-blur-md border border-slate-800 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto divide-y divide-slate-900/50">
+                  {mapSearchSuggestions.map((s, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSelectSuggestion(s)}
+                      className="w-full px-4 py-3 text-left text-xs text-slate-300 hover:text-white hover:bg-indigo-600/20 transition-all flex items-start gap-2.5 outline-none"
+                    >
+                      <MapPin className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                      <span className="truncate">{s.display_name}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
