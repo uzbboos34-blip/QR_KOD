@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npx prisma generate && vite build",
+    "postinstall": "prisma generate",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
