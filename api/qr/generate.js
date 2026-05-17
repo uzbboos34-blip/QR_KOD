@@ -19,15 +19,17 @@ export default async function handler(req, res) {
   try {
     const { id, type, content, qrDataUrl, label } = req.body;
     
-    if (!id || !type || !content) {
+    if (!id || !type) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    const finalContent = content || '';
 
     const qrCode = await prisma.qr_codes.create({
       data: {
         id,
         type,
-        content,
+        content: finalContent,
         qrDataUrl: qrDataUrl || '',
         label: label || ''
       }

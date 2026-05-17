@@ -193,14 +193,6 @@ export default function ScanResult() {
 
           </div>
 
-          {/* Return Home Button */}
-          <Button 
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="mt-8 text-slate-500 hover:text-white font-bold tracking-widest uppercase text-[10px] gap-2 rounded-full px-6 py-3 hover:bg-white/5"
-          >
-            <ArrowLeft className="w-4 h-4" /> Bosh sahifaga
-          </Button>
 
         </div>
 
@@ -386,14 +378,6 @@ export default function ScanResult() {
 
           </div>
 
-          {/* Return Home Button */}
-          <Button 
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="mt-8 text-slate-500 hover:text-white font-bold tracking-widest uppercase text-[10px] gap-2 rounded-full px-6 py-3 hover:bg-white/5"
-          >
-            <ArrowLeft className="w-4 h-4" /> Bosh sahifaga
-          </Button>
 
         </div>
       </div>
