@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Download, Upload, QrCode, Type, Image, Sparkles } from "lucide-react";
+import { Download, Upload, QrCode, Type, Image, Sparkles, Share2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -114,6 +114,44 @@ export default function QRGenerator() {
     a.href = dataUrl;
     a.download = filename;
     a.click();
+  };
+
+  const handleShareQR = async () => {
+    try {
+      // Convert dataURL to blob
+      const response = await fetch(imageQrDataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "qrcode.png", { type: "image/png" });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "QR Kod",
+          text: "Rasm va matn jamlangan premium QR Kod",
+        });
+      } else {
+        // Fallback to sharing the text/url
+        const baseUrl = window.location.origin;
+        let targetUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(uploadedImageUrl)}`;
+        if (imageDescription.trim()) {
+          targetUrl += `&caption=${encodeURIComponent(imageDescription.trim())}`;
+        }
+        await navigator.share({
+          title: "QR Kod Havolasi",
+          url: targetUrl,
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      // Simple copy to clipboard fallback
+      const baseUrl = window.location.origin;
+      let targetUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(uploadedImageUrl)}`;
+      if (imageDescription.trim()) {
+        targetUrl += `&caption=${encodeURIComponent(imageDescription.trim())}`;
+      }
+      navigator.clipboard.writeText(targetUrl);
+      alert("Havola nusxalandi! Do'stlaringizga yuborishingiz mumkin.");
+    }
   };
 
   return (
@@ -306,12 +344,20 @@ export default function QRGenerator() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  onClick={() => downloadQR(imageQrDataUrl, "image-qrcode.png")}
-                  className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg gap-3 shadow-xl shadow-indigo-900/20 transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  <Download className="w-5 h-5" /> Yuklab olish
-                </Button>
+                <div className="flex gap-3 w-full">
+                  <Button
+                    onClick={() => downloadQR(imageQrDataUrl, "image-qrcode.png")}
+                    className="flex-1 h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-white font-bold text-base gap-2 shadow-xl transition-all hover:scale-[1.02] active:scale-95"
+                  >
+                    <Download className="w-5 h-5 text-indigo-400" /> Yuklab olish
+                  </Button>
+                  <Button
+                    onClick={handleShareQR}
+                    className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base gap-2 shadow-xl shadow-indigo-900/20 transition-all hover:scale-[1.02] active:scale-95"
+                  >
+                    <Share2 className="w-5 h-5" /> Ulashish
+                  </Button>
+                </div>
               </div>
             )}
 
