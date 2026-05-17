@@ -273,6 +273,37 @@ export default function QRGenerator() {
     }
   };
 
+  // Auto-search Nominatim API on search query typing with 600ms debounce
+  useEffect(() => {
+    if (!mapSearchQuery.trim() || !mapRef.current || !markerRef.current) return;
+    
+    const delayDebounceFn = setTimeout(() => {
+      const autoSearch = async () => {
+        setIsSearchingMap(true);
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery.trim())}`
+          );
+          const data = await response.json();
+          if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lng = parseFloat(data[0].lon);
+            mapRef.current.setView([lat, lng], 16);
+            markerRef.current.setLatLng([lat, lng]);
+            setSelectedCoords({ lat, lng });
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsSearchingMap(false);
+        }
+      };
+      autoSearch();
+    }, 600);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [mapSearchQuery]);
+
   const handleConfirmLocation = () => {
     if (selectedCoords) {
       setLocationMapUrl(`https://www.google.com/maps?q=${selectedCoords.lat},${selectedCoords.lng}`);
@@ -714,27 +745,21 @@ export default function QRGenerator() {
             </div>
 
             {/* Address Search Bar (Sorchka) */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Manzilni qidiring (masalan: Chilonzor)..."
-                  value={mapSearchQuery}
-                  onChange={(e) => setMapSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleMapSearch();
-                  }}
-                  className="w-full h-11 bg-slate-950/60 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-xl pl-9 pr-3 outline-none text-xs focus:border-indigo-500 transition-colors"
-                />
-                <Search className="absolute left-3 top-3 w-4 h-4 text-slate-600" />
-              </div>
-              <Button
-                onClick={handleMapSearch}
-                disabled={isSearchingMap}
-                className="h-11 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0"
-              >
-                {isSearchingMap ? "..." : "Qidirish"}
-              </Button>
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="Manzilni yozing (avtomatik qidiriladi)..."
+                value={mapSearchQuery}
+                onChange={(e) => setMapSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleMapSearch();
+                }}
+                className="w-full h-11 bg-slate-950/60 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-xl pl-9 pr-10 outline-none text-xs focus:border-indigo-500 transition-colors"
+              />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-slate-600" />
+              {isSearchingMap && (
+                <div className="absolute right-3 top-[14px] w-4 h-4 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+              )}
             </div>
 
             {/* Map Picker Container */}
