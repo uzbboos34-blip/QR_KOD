@@ -126,8 +126,6 @@ export default function QRGenerator() {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: "QR Kod",
-          text: "Rasm va matn jamlangan premium QR Kod",
         });
       } else {
         // Fallback to sharing the text/url
