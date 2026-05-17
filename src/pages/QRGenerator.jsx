@@ -669,15 +669,15 @@ export default function QRGenerator() {
               <div className="space-y-2 text-left animate-in fade-in duration-300">
                 <div className="flex justify-between items-center px-1">
                   <Label htmlFor="image-desc" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rasm ostidagi matn (Ixtiyoriy)</Label>
-                  <span className="text-[10px] font-mono text-slate-500">{imageDescription.length}/1000</span>
+                  <span className="text-[10px] font-mono text-slate-500">{imageDescription.length}/2000</span>
                 </div>
                 <Textarea
                   id="image-desc"
                   placeholder="Rasm ostida chiqadigan matnni yozing (masalan: tabrik, ism yoki telefon)..."
                   value={imageDescription}
-                  onChange={(e) => setImageDescription(e.target.value.slice(0, 1000))}
+                  onChange={(e) => setImageDescription(e.target.value.slice(0, 2000))}
                   className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
-                  maxLength={1000}
+                  maxLength={2000}
                 />
               </div>
             )}
@@ -775,15 +775,15 @@ export default function QRGenerator() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
                   <Label htmlFor="loc-desc" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Qo'shimcha ma'lumot (Ixtiyoriy)</Label>
-                  <span className="text-[10px] font-mono text-slate-500">{locationDesc.length}/1000</span>
+                  <span className="text-[10px] font-mono text-slate-500">{locationDesc.length}/2000</span>
                 </div>
                 <Textarea
                   id="loc-desc"
                   placeholder="Ish vaqti, telefon raqam yoki mo'ljal yozishingiz mumkin..."
                   value={locationDesc}
-                  onChange={(e) => setLocationDesc(e.target.value.slice(0, 1000))}
+                  onChange={(e) => setLocationDesc(e.target.value.slice(0, 2000))}
                   className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
-                  maxLength={1000}
+                  maxLength={2000}
                 />
               </div>
             </div>
