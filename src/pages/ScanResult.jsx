@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, MapPin, Navigation } from "lucide-react";
+import { ArrowLeft, Download, MapPin, Navigation, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function ScanResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [showMapChooser, setShowMapChooser] = useState(false);
   
   // Params for different types of scan results
   const type = searchParams.get("type") || "";
@@ -16,6 +18,34 @@ export default function ScanResult() {
   const title = searchParams.get("title") || "";
   const mapUrl = searchParams.get("mapUrl") || "";
   const desc = searchParams.get("desc") || "";
+
+  // Parse coordinates from Google Maps Url
+  const getCoords = () => {
+    if (!mapUrl) return null;
+    try {
+      const urlObj = new URL(mapUrl);
+      const q = urlObj.searchParams.get("q");
+      if (q) {
+        const parts = q.split(",");
+        if (parts.length === 2) {
+          return {
+            lat: parseFloat(parts[0]),
+            lng: parseFloat(parts[1])
+          };
+        }
+      }
+    } catch (_) {
+      // regex fallback
+      const match = mapUrl.match(/q=([\d.-]+),([\d.-]+)/);
+      if (match && match.length === 3) {
+        return {
+          lat: parseFloat(match[1]),
+          lng: parseFloat(match[2])
+        };
+      }
+    }
+    return null;
+  };
 
   const isImageUrl = (url) => {
     if (!url) return false;
@@ -111,10 +141,10 @@ export default function ScanResult() {
             {/* Actions Panel - Open Map URL */}
             <div className="w-full">
               <Button 
-                onClick={() => window.open(mapUrl, "_blank")}
+                onClick={() => setShowMapChooser(true)}
                 className="w-full h-14 rounded-2xl bg-white hover:bg-slate-100 text-black font-extrabold text-base transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-white/5 gap-2.5"
               >
-                <Navigation className="w-5 h-5 fill-black" /> Navigatsiyani boshlash
+                <Navigation className="w-5 h-5 fill-black animate-pulse" /> Navigatsiyani boshlash
               </Button>
             </div>
 
@@ -130,6 +160,129 @@ export default function ScanResult() {
           </Button>
 
         </div>
+
+        {/* Premium Dark Glass Map Chooser Modal */}
+        {showMapChooser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-slate-900/90 border border-white/10 rounded-[2.5rem] w-full max-w-md p-6 shadow-2xl space-y-4 animate-in zoom-in duration-300 text-left relative overflow-hidden">
+              {/* Decorative glows */}
+              <div className="absolute top-[-20%] left-[-20%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none" />
+              
+              {/* Modal Header */}
+              <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Map className="w-5 h-5 text-indigo-400" /> Navigatorni tanlang
+                </h3>
+                <button 
+                  onClick={() => setShowMapChooser(false)}
+                  className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  Yopish
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-400 font-medium">
+                Ushbu manzilga qaysi ilova orqali yo'l olishni xohlaysiz?
+              </p>
+
+              {/* Maps List Grid */}
+              <div className="grid grid-cols-1 gap-2.5 pt-2">
+                {/* 1. Google Maps */}
+                <button
+                  onClick={() => {
+                    window.open(mapUrl, "_blank");
+                    setShowMapChooser(false);
+                  }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all text-left group active:scale-98"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 font-bold text-lg">
+                      G
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">Google Maps</h4>
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Xarita va Navigatsiya</p>
+                    </div>
+                  </div>
+                  <Navigation className="w-4 h-4 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </button>
+
+                {/* 2. Yandex Maps */}
+                <button
+                  onClick={() => {
+                    const coords = getCoords();
+                    const target = coords 
+                      ? `https://yandex.com/maps/?text=${coords.lat},${coords.lng}`
+                      : mapUrl;
+                    window.open(target, "_blank");
+                    setShowMapChooser(false);
+                  }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all text-left group active:scale-98"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-400 font-bold text-lg">
+                      Y
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">Yandex Navigator</h4>
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Yandex Xaritalar</p>
+                    </div>
+                  </div>
+                  <Navigation className="w-4 h-4 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </button>
+
+                {/* 3. 2GIS Maps */}
+                <button
+                  onClick={() => {
+                    const coords = getCoords();
+                    const target = coords 
+                      ? `https://2gis.ru/geo/${coords.lng},${coords.lat}`
+                      : mapUrl;
+                    window.open(target, "_blank");
+                    setShowMapChooser(false);
+                  }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all text-left group active:scale-98"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center text-green-400 font-bold text-lg">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">2GIS Maps</h4>
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Mahalliy Navigatsiya</p>
+                    </div>
+                  </div>
+                  <Navigation className="w-4 h-4 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </button>
+
+                {/* 4. Apple Maps */}
+                <button
+                  onClick={() => {
+                    const coords = getCoords();
+                    const target = coords 
+                      ? `https://maps.apple.com/?q=${coords.lat},${coords.lng}`
+                      : mapUrl;
+                    window.open(target, "_blank");
+                    setShowMapChooser(false);
+                  }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all text-left group active:scale-98"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 font-bold text-lg">
+                      A
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">Apple Maps</h4>
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">iOS va Mac uchun</p>
+                    </div>
+                  </div>
+                  <Navigation className="w-4 h-4 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
