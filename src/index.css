@@ -55,7 +55,7 @@ html, body {
   padding: 0;
   background-color: #050810 !important;
   background: #050810 !important;
-  overflow: hidden !important;
+  overscroll-behavior: none !important; /* Prevents ugly elastic browser bounce */
   height: 100% !important;
   width: 100% !important;
 }
@@ -66,13 +66,13 @@ html, body {
   margin: 0 auto;
   text-align: center;
   border-inline: none !important;
-  height: 100% !important;
   min-height: 100% !important;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   background-color: #050810 !important;
-  overflow: hidden !important;
+  overflow-y: auto !important; /* Allows scrolling on small screens so QR is never cut off */
+  overscroll-behavior-y: none !important; /* Disable vertical scroll bounce */
 }
 
 h1,
