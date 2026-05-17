@@ -87,9 +87,9 @@ export default function ScanResult() {
             {/* Optional Description / Caption */}
             {caption && (
               <div className="w-full mb-6 p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md text-left">
-                <p className="text-slate-300 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap break-words">
+                <div className="max-h-[90px] overflow-y-auto pr-2 text-slate-300 text-sm md:text-base font-medium leading-relaxed whitespace-pre-wrap break-words scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                   {caption}
-                </p>
+                </div>
               </div>
             )}
 

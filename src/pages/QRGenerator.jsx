@@ -267,13 +267,17 @@ export default function QRGenerator() {
 
             {uploadedImageUrl && !imageLoading && (
               <div className="space-y-2 text-left animate-in fade-in duration-300">
-                <Label htmlFor="image-desc" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Rasm ostidagi matn (Ixtiyoriy)</Label>
+                <div className="flex justify-between items-center px-1">
+                  <Label htmlFor="image-desc" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rasm ostidagi matn (Ixtiyoriy)</Label>
+                  <span className="text-[10px] font-mono text-slate-500">{imageDescription.length}/1000</span>
+                </div>
                 <Textarea
                   id="image-desc"
                   placeholder="Rasm ostida chiqadigan matnni yozing (masalan: tabrik, ism yoki telefon)..."
                   value={imageDescription}
-                  onChange={(e) => setImageDescription(e.target.value)}
+                  onChange={(e) => setImageDescription(e.target.value.slice(0, 1000))}
                   className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
+                  maxLength={1000}
                 />
               </div>
             )}
