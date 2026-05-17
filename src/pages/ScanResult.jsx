@@ -53,7 +53,7 @@ export default function ScanResult() {
   // If it's a beautiful image scanned
   if (isImageUrl(data)) {
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans text-white">
+      <div className="min-h-full bg-[#050810] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans text-white">
         {/* Color-matched Ambient Blurred Backdrop */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <img 
@@ -113,7 +113,7 @@ export default function ScanResult() {
 
   // Fallback for regular text / link
   return (
-    <div className="min-h-screen bg-[#050810] flex items-center justify-center p-8 relative overflow-hidden font-sans">
+    <div className="min-h-full bg-[#050810] flex items-center justify-center p-8 relative overflow-hidden font-sans">
       {/* Subtle Background Glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent opacity-50" />
