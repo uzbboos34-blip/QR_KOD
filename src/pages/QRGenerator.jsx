@@ -254,7 +254,7 @@ export default function QRGenerator() {
     setIsSearchingMap(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
+        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&accept-language=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
       );
       const data = await response.json();
       if (data && data.length > 0) {
@@ -281,7 +281,7 @@ export default function QRGenerator() {
         setIsSearchingMap(true);
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
+            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&accept-language=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
           );
           const data = await response.json();
           if (data && data.length > 0) {
