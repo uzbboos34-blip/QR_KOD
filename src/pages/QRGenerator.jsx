@@ -603,7 +603,9 @@ export default function QRGenerator() {
                   onChange={(e) => setLocationTitle(e.target.value)}
                   className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm px-4 outline-none"
                 />
-                           <div className="space-y-2">
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="loc-url" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Google Maps Havolasi</Label>
                 <div 
                   onClick={() => setShowMapModal(true)}
@@ -627,7 +629,7 @@ export default function QRGenerator() {
                     </Button>
                   </div>
                 </div>
-              </div>           </div>
+              </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
