@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Download, Upload, QrCode, Type, Image, Sparkles, Share2, MapPin } from "lucide-react";
+import { Download, Upload, QrCode, Type, Image, Sparkles, Share2, MapPin, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -23,6 +23,11 @@ export default function QRGenerator() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [isSearchingMap, setIsSearchingMap] = useState(false);
+  const [isLocatingPicker, setIsLocatingPicker] = useState(false);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [useSmartQR, setUseSmartQR] = useState(true);
@@ -178,6 +183,8 @@ export default function QRGenerator() {
     return () => {
       link.remove();
       script.remove();
+      mapRef.current = null;
+      markerRef.current = null;
     };
   }, [showMapModal]);
 
@@ -188,10 +195,11 @@ export default function QRGenerator() {
 
     // Clean up old map instance if it was already initialized
     if (container._leaflet_id) {
-      container.outerHTML = '<div id="map-picker-container" class="w-full h-[320px] rounded-2xl overflow-hidden border border-slate-800"></div>';
+      container.outerHTML = '<div id="map-picker-container" class="w-full h-[280px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center text-slate-500 text-xs z-10"></div>';
     }
 
     const map = L.map("map-picker-container").setView([lat, lng], 15);
+    mapRef.current = map;
     
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -200,6 +208,7 @@ export default function QRGenerator() {
 
     // Draggable marker
     const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+    markerRef.current = marker;
     
     const updateCoords = (newLat, newLng) => {
       setSelectedCoords({ lat: newLat, lng: newLng });
@@ -217,6 +226,51 @@ export default function QRGenerator() {
       marker.setLatLng(e.latlng);
       updateCoords(e.latlng.lat, e.latlng.lng);
     });
+  };
+
+  const handleLocateInPicker = () => {
+    if (!mapRef.current || !markerRef.current) return;
+    setIsLocatingPicker(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        mapRef.current.setView([lat, lng], 16);
+        markerRef.current.setLatLng([lat, lng]);
+        setSelectedCoords({ lat, lng });
+        setIsLocatingPicker(false);
+      },
+      () => {
+        setIsLocatingPicker(false);
+        alert("Hozirgi joylashuvingizni aniqlab bo'lmadi.");
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const handleMapSearch = async () => {
+    if (!mapSearchQuery.trim() || !mapRef.current || !markerRef.current) return;
+    setIsSearchingMap(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearchQuery.trim())}`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        mapRef.current.setView([lat, lng], 16);
+        markerRef.current.setLatLng([lat, lng]);
+        setSelectedCoords({ lat, lng });
+      } else {
+        alert("Ushbu manzil topilmadi. Iltimos qayta kiriting.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Qidiruvda xatolik yuz berdi.");
+    } finally {
+      setIsSearchingMap(false);
+    }
   };
 
   const handleConfirmLocation = () => {
@@ -549,55 +603,31 @@ export default function QRGenerator() {
                   onChange={(e) => setLocationTitle(e.target.value)}
                   className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm px-4 outline-none"
                 />
-              </div>
-
-              <div className="space-y-2">
+                           <div className="space-y-2">
                 <Label htmlFor="loc-url" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Google Maps Havolasi</Label>
-                <div className="relative flex items-center">
+                <div 
+                  onClick={() => setShowMapModal(true)}
+                  className="relative flex items-center cursor-pointer group"
+                >
                   <input
                     id="loc-url"
                     type="text"
-                    placeholder="Havola yoki pastdagi tugmalar orqali tanlang..."
+                    placeholder="Xaritadan tanlash uchun bosing..."
                     value={locationMapUrl}
-                    onChange={(e) => setLocationMapUrl(e.target.value)}
-                    className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm pl-4 pr-12 outline-none"
+                    readOnly
+                    className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl group-hover:border-indigo-500/30 transition-all text-sm pl-4 pr-12 outline-none cursor-pointer"
                   />
                   <div className="absolute right-2 flex gap-1">
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() => setShowMapModal(true)}
-                      className="w-10 h-10 rounded-xl hover:bg-indigo-500/10 text-indigo-400 hover:text-indigo-300 p-0 flex items-center justify-center transition-all"
-                      title="Xaritadan tanlash"
+                      className="w-10 h-10 rounded-xl hover:bg-indigo-500/10 text-indigo-400 group-hover:text-indigo-300 p-0 flex items-center justify-center transition-all"
                     >
                       <MapPin className="w-5 h-5" />
                     </Button>
                   </div>
                 </div>
-
-                {/* Quick Map Pickers Helper buttons */}
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleDetectCurrentLocation}
-                    disabled={isLocating}
-                    className="flex-1 h-10 rounded-xl border-slate-800 bg-slate-950/20 text-slate-400 hover:text-white font-medium text-xs gap-1.5 transition-all"
-                  >
-                    <MapPin className={`w-3.5 h-3.5 text-indigo-400 ${isLocating ? 'animate-bounce' : ''}`} />
-                    {isLocating ? "Aniqlanmoqda..." : "📍 Hozirgi joylashuvim"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowMapModal(true)}
-                    className="flex-1 h-10 rounded-xl border-slate-800 bg-slate-950/20 text-slate-400 hover:text-white font-medium text-xs gap-1.5 transition-all"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    🗺️ Xaritadan tanlash
-                  </Button>
-                </div>
-              </div>
+              </div>           </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
@@ -664,9 +694,7 @@ export default function QRGenerator() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* Premium Leaflet Map Picker Modal */}
+           {/* Premium Leaflet Map Picker Modal */}
       {showMapModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-slate-900 border border-slate-800 rounded-[2rem] w-full max-w-md p-6 shadow-2xl space-y-4 animate-in zoom-in duration-300 text-left">
@@ -675,28 +703,68 @@ export default function QRGenerator() {
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-indigo-500 animate-bounce" /> Joylashuvni tanlang
               </h3>
-              <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                OpenStreetMap
-              </span>
+              <button 
+                onClick={() => setShowMapModal(false)}
+                className="text-xs font-bold text-slate-500 hover:text-white transition-colors"
+              >
+                Yopish
+              </button>
+            </div>
+
+            {/* Address Search Bar (Sorchka) */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Manzilni qidiring (masalan: Chilonzor)..."
+                  value={mapSearchQuery}
+                  onChange={(e) => setMapSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleMapSearch();
+                  }}
+                  className="w-full h-11 bg-slate-950/60 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-xl pl-9 pr-3 outline-none text-xs focus:border-indigo-500 transition-colors"
+                />
+                <Search className="absolute left-3 top-3 w-4 h-4 text-slate-600" />
+              </div>
+              <Button
+                onClick={handleMapSearch}
+                disabled={isSearchingMap}
+                className="h-11 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0"
+              >
+                {isSearchingMap ? "..." : "Qidirish"}
+              </Button>
             </div>
 
             {/* Map Picker Container */}
-            <div 
-              id="map-picker-container" 
-              className="w-full h-[320px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center text-slate-500 text-xs"
-            >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                <span>Xarita yuklanmoqda...</span>
+            <div className="relative">
+              <div 
+                id="map-picker-container" 
+                className="w-full h-[280px] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center text-slate-500 text-xs z-10"
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                  <span>Xarita yuklanmoqda...</span>
+                </div>
               </div>
+
+              {/* Floating Current Location GPS Button inside Map */}
+              <button
+                type="button"
+                onClick={handleLocateInPicker}
+                disabled={isLocatingPicker}
+                className="absolute bottom-4 right-4 z-[1000] w-11 h-11 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-indigo-400 hover:text-indigo-300 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-95"
+                title="Hozirgi joylashuvimga o'tish"
+              >
+                <MapPin className={`w-5 h-5 ${isLocatingPicker ? 'animate-bounce text-purple-400' : ''}`} />
+              </button>
             </div>
 
-            <p className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-semibold">
+            <p className="text-[9px] text-slate-500 text-center uppercase tracking-wide font-semibold">
               Markerni torting yoki kerakli joyni bosing
             </p>
 
             {/* Modal Actions */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-1">
               <Button
                 onClick={() => setShowMapModal(false)}
                 className="flex-1 h-12 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-bold transition-all text-xs"
