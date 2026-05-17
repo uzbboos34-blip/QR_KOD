@@ -140,17 +140,37 @@ export default function QRGenerator() {
   const generateImageQR = async () => {
     if (!uploadedImageUrl) return;
     try {
-      const baseUrl = window.location.origin;
-      let smartUrl = `${baseUrl}/scan-result?data=${encodeURIComponent(uploadedImageUrl)}`;
-      if (imageDescription.trim()) {
-        smartUrl += `&caption=${encodeURIComponent(imageDescription.trim())}`;
+      // 1. Matnni va rasmni serverga yuboramiz
+      const uniqueId = `qr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      
+      const payload = {
+        id: uniqueId,
+        type: 'image',
+        content: imageDescription.trim(),
+        qrDataUrl: uploadedImageUrl
+      };
+
+      const res = await fetch('/api/qr/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error('API xatosi');
       }
+
+      // 2. Qaytarilgan ID asosida qisqa va tiniq QR kod yasaymiz!
+      const baseUrl = window.location.origin;
+      const smartUrl = `${baseUrl}/scan-result?id=${uniqueId}`;
+      
       const qr = await QRCode.toDataURL(smartUrl, { width: 300, margin: 2 });
       setImageQrDataUrl(qr);
+      toast.success("QR kod tayyor!");
     } catch (error) {
       console.error("Failed to generate image QR code:", error);
       setImageQrDataUrl("");
-      toast.error("Rasm tagidagi matn juda uzun! Iltimos, qisqaroq yozing.");
+      toast.error("Xatolik yuz berdi! Tizim ishlamayapti (Server ulanmagan bo'lishi mumkin).");
     }
   };
 
@@ -165,17 +185,42 @@ export default function QRGenerator() {
       return;
     }
     try {
-      const baseUrl = window.location.origin;
-      let smartUrl = `${baseUrl}/scan-result?type=location&title=${encodeURIComponent(locationTitle.trim())}&mapUrl=${encodeURIComponent(locationMapUrl.trim())}`;
-      if (locationDesc.trim()) {
-        smartUrl += `&desc=${encodeURIComponent(locationDesc.trim())}`;
+      const uniqueId = `qr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      
+      const contentData = JSON.stringify({
+        title: locationTitle.trim(),
+        mapUrl: locationMapUrl.trim(),
+        desc: locationDesc.trim()
+      });
+
+      const payload = {
+        id: uniqueId,
+        type: 'location',
+        content: contentData,
+        qrDataUrl: locationMapUrl.trim(),
+        label: locationTitle.trim()
+      };
+
+      const res = await fetch('/api/qr/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error('API xatosi');
       }
+
+      const baseUrl = window.location.origin;
+      const smartUrl = `${baseUrl}/scan-result?id=${uniqueId}`;
+      
       const qr = await QRCode.toDataURL(smartUrl, { width: 300, margin: 2 });
       setLocationQrDataUrl(qr);
+      toast.success("Joylashuv QR kodi tayyor!");
     } catch (error) {
       console.error("Failed to generate location QR code:", error);
       setLocationQrDataUrl("");
-      toast.error("Joylashuv ma'lumotlari juda uzun! Iltimos, qisqaroq yozing.");
+      toast.error("Xatolik yuz berdi! Serverda xatolik kuzatildi.");
     }
   };
 

@@ -8,16 +8,59 @@ export default function ScanResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [showMapChooser, setShowMapChooser] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [loading, setLoading] = useState(true);
   
-  // Params for different types of scan results
-  const type = searchParams.get("type") || "";
-  const data = searchParams.get("data") || "";
-  const caption = searchParams.get("caption") || "";
+  const qrId = searchParams.get("id");
+
+  useEffect(() => {
+    if (!qrId) {
+      setLoading(false);
+      return;
+    }
+    const fetchQRData = async () => {
+      try {
+        const res = await fetch(`/api/qr/get?id=${qrId}`);
+        const result = await res.json();
+        if (result.success && result.data) {
+          setQrData(result.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQRData();
+  }, [qrId]);
+
+  // If loading from DB, show a spinner
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#050810] text-white">
+        <div className="w-10 h-10 border-4 border-slate-600 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-400 font-medium animate-pulse">Ma'lumotlar yuklanmoqda...</p>
+      </div>
+    );
+  }
+
+  // Params for different types of scan results (Fallback to old URL params if no DB data)
+  const type = qrData?.type || searchParams.get("type") || "";
+  const data = qrData?.qrDataUrl || searchParams.get("data") || "";
+  const caption = qrData?.content || searchParams.get("caption") || "";
 
   // Location params
-  const title = searchParams.get("title") || "";
-  const mapUrl = searchParams.get("mapUrl") || "";
-  const desc = searchParams.get("desc") || "";
+  const title = qrData?.label || searchParams.get("title") || "";
+  const mapUrl = qrData?.qrDataUrl || searchParams.get("mapUrl") || "";
+  let desc = searchParams.get("desc") || "";
+  
+  // If it's location type and from DB, content holds JSON string
+  if (qrData?.type === 'location' && qrData?.content) {
+    try {
+      const parsed = JSON.parse(qrData.content);
+      desc = parsed.desc || desc;
+    } catch (e) {}
+  }
 
   // Parse coordinates from Google Maps Url
   const getCoords = () => {
