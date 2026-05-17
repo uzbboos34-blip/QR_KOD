@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Download, Upload, QrCode, Type, Image, Sparkles, Share2 } from "lucide-react";
+import { Download, Upload, QrCode, Type, Image, Sparkles, Share2, MapPin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -16,6 +16,10 @@ export default function QRGenerator() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploadedImagePreview, setUploadedImagePreview] = useState("");
   const [imageDescription, setImageDescription] = useState("");
+  const [locationTitle, setLocationTitle] = useState("");
+  const [locationMapUrl, setLocationMapUrl] = useState("");
+  const [locationDesc, setLocationDesc] = useState("");
+  const [locationQrDataUrl, setLocationQrDataUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [useSmartQR, setUseSmartQR] = useState(true);
@@ -62,6 +66,62 @@ export default function QRGenerator() {
   useEffect(() => {
     generateImageQR();
   }, [uploadedImageUrl, imageDescription]);
+
+  // Generate QR for location dynamically
+  const generateLocationQR = async () => {
+    if (!locationTitle.trim() || !locationMapUrl.trim()) {
+      setLocationQrDataUrl("");
+      return;
+    }
+    try {
+      const baseUrl = window.location.origin;
+      let smartUrl = `${baseUrl}/scan-result?type=location&title=${encodeURIComponent(locationTitle.trim())}&mapUrl=${encodeURIComponent(locationMapUrl.trim())}`;
+      if (locationDesc.trim()) {
+        smartUrl += `&desc=${encodeURIComponent(locationDesc.trim())}`;
+      }
+      const qr = await QRCode.toDataURL(smartUrl, { width: 300, margin: 2 });
+      setLocationQrDataUrl(qr);
+    } catch (error) {
+      console.error("Failed to generate location QR code:", error);
+    }
+  };
+
+  useEffect(() => {
+    generateLocationQR();
+  }, [locationTitle, locationMapUrl, locationDesc]);
+
+  const handleShareLocationQR = async () => {
+    try {
+      const response = await fetch(locationQrDataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "location-qrcode.png", { type: "image/png" });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+        });
+      } else {
+        const baseUrl = window.location.origin;
+        let targetUrl = `${baseUrl}/scan-result?type=location&title=${encodeURIComponent(locationTitle.trim())}&mapUrl=${encodeURIComponent(locationMapUrl.trim())}`;
+        if (locationDesc.trim()) {
+          targetUrl += `&desc=${encodeURIComponent(locationDesc.trim())}`;
+        }
+        await navigator.share({
+          title: "Lokatsiya QR",
+          url: targetUrl,
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      const baseUrl = window.location.origin;
+      let targetUrl = `${baseUrl}/scan-result?type=location&title=${encodeURIComponent(locationTitle.trim())}&mapUrl=${encodeURIComponent(locationMapUrl.trim())}`;
+      if (locationDesc.trim()) {
+        targetUrl += `&desc=${encodeURIComponent(locationDesc.trim())}`;
+      }
+      navigator.clipboard.writeText(targetUrl);
+      alert("Havola nusxalandi! Do'stlaringizga yuborishingiz mumkin.");
+    }
+  };
 
   // Handle image upload
   const handleImageUpload = async (e) => {
@@ -174,15 +234,21 @@ export default function QRGenerator() {
           <TabsList className="w-full h-14 bg-slate-950/50 border border-slate-800 p-1.5 rounded-2xl mb-8">
             <TabsTrigger 
               value="text" 
-              className="flex-1 gap-2 rounded-xl text-slate-400 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+              className="flex-1 gap-2 rounded-xl text-slate-400 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-xs md:text-sm"
             >
               <Type className="w-4 h-4" /> Matn
             </TabsTrigger>
             <TabsTrigger 
               value="image" 
-              className="flex-1 gap-2 rounded-xl text-slate-400 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+              className="flex-1 gap-2 rounded-xl text-slate-400 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-xs md:text-sm"
             >
               <Image className="w-4 h-4" /> Rasm
+            </TabsTrigger>
+            <TabsTrigger 
+              value="location" 
+              className="flex-1 gap-2 rounded-xl text-slate-400 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-xs md:text-sm"
+            >
+              <MapPin className="w-4 h-4" /> Lokatsiya
             </TabsTrigger>
           </TabsList>
 
@@ -363,6 +429,98 @@ export default function QRGenerator() {
               <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-slate-800 rounded-[2rem] text-slate-500 bg-slate-950/20">
                 <QrCode className="w-8 h-8 mb-3 opacity-20" />
                 <p className="text-sm font-medium">Rasm tanlang — QR kod yasaladi</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* LOCATION TAB */}
+          <TabsContent value="location" className="space-y-6 outline-none">
+            <div className="space-y-4 text-left">
+              <div className="space-y-2">
+                <Label htmlFor="loc-title" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Joy nomi (Masalan: Ofisimiz, Do'konimiz)</Label>
+                <input
+                  id="loc-title"
+                  type="text"
+                  placeholder="Joy nomini kiriting..."
+                  value={locationTitle}
+                  onChange={(e) => setLocationTitle(e.target.value)}
+                  className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm px-4 outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="loc-url" className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Google Maps Havolasi</Label>
+                <input
+                  id="loc-url"
+                  type="text"
+                  placeholder="https://maps.app.goo.gl/... yoki havolani kiriting"
+                  value={locationMapUrl}
+                  onChange={(e) => setLocationMapUrl(e.target.value)}
+                  className="w-full h-14 bg-slate-950/50 border border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm px-4 outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <Label htmlFor="loc-desc" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Qo'shimcha ma'lumot (Ixtiyoriy)</Label>
+                  <span className="text-[10px] font-mono text-slate-500">{locationDesc.length}/1000</span>
+                </div>
+                <Textarea
+                  id="loc-desc"
+                  placeholder="Ish vaqti, telefon raqam yoki mo'ljal yozishingiz mumkin..."
+                  value={locationDesc}
+                  onChange={(e) => setLocationDesc(e.target.value.slice(0, 1000))}
+                  className="min-h-[80px] bg-slate-950/50 border-slate-800 text-slate-200 placeholder:text-slate-600 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm resize-none p-3"
+                  maxLength={1000}
+                />
+              </div>
+            </div>
+
+            {locationQrDataUrl && (
+              <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500 pt-4">
+                <div 
+                  className="relative p-4 bg-white rounded-3xl shadow-2xl group cursor-pointer"
+                  onClick={() => {
+                    const baseUrl = window.location.origin;
+                    let targetUrl = `${baseUrl}/scan-result?type=location&title=${encodeURIComponent(locationTitle.trim())}&mapUrl=${encodeURIComponent(locationMapUrl.trim())}`;
+                    if (locationDesc.trim()) {
+                      targetUrl += `&desc=${encodeURIComponent(locationDesc.trim())}`;
+                    }
+                    window.open(targetUrl, "_blank");
+                  }}
+                >
+                  <img
+                    src={locationQrDataUrl}
+                    alt="Lokatsiya QR kodi"
+                    className="w-56 h-56 rounded-xl"
+                  />
+                  <div className="absolute inset-0 border-2 border-transparent group-hover:border-indigo-500/20 rounded-3xl transition-all duration-500 flex items-center justify-center">
+                    <div className="bg-slate-900/60 backdrop-blur-md px-4 py-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-white uppercase tracking-widest">
+                      Natijani ko'rish
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 w-full">
+                  <Button
+                    onClick={() => downloadQR(locationQrDataUrl, "location-qrcode.png")}
+                    className="flex-1 h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-white font-bold text-base gap-2 shadow-xl transition-all hover:scale-[1.02] active:scale-95"
+                  >
+                    <Download className="w-5 h-5 text-indigo-400" /> Yuklab olish
+                  </Button>
+                  <Button
+                    onClick={handleShareLocationQR}
+                    className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base gap-2 shadow-xl shadow-indigo-900/20 transition-all hover:scale-[1.02] active:scale-95"
+                  >
+                    <Share2 className="w-5 h-5" /> Ulashish
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!locationQrDataUrl && (
+              <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-slate-800 rounded-[2rem] text-slate-500 bg-slate-950/20">
+                <MapPin className="w-8 h-8 mb-3 opacity-20" />
+                <p className="text-sm font-medium">Joy nomi va havolasini kiriting</p>
               </div>
             )}
           </TabsContent>
