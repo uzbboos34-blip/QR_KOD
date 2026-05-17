@@ -325,9 +325,20 @@ export default function QRGenerator() {
   const handleMapSearch = async () => {
     if (!mapSearchQuery.trim() || !mapRef.current || !markerRef.current) return;
     setIsSearchingMap(true);
+    
+    let viewboxParam = "";
+    try {
+      const center = mapRef.current.getCenter();
+      const minlon = center.lng - 0.5;
+      const maxlon = center.lng + 0.5;
+      const minlat = center.lat - 0.5;
+      const maxlat = center.lat + 0.5;
+      viewboxParam = `&viewbox=${minlon},${minlat},${maxlon},${maxlat}&bounded=0`;
+    } catch (_) {}
+
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&accept-language=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
+        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&accept-language=uz&limit=5${viewboxParam}&q=${encodeURIComponent(mapSearchQuery.trim())}`
       );
       const data = await response.json();
       if (data && data.length > 0) {
@@ -352,9 +363,20 @@ export default function QRGenerator() {
     const delayDebounceFn = setTimeout(() => {
       const fetchSuggestions = async () => {
         setIsSearchingMap(true);
+        
+        let viewboxParam = "";
+        try {
+          const center = mapRef.current.getCenter();
+          const minlon = center.lng - 0.5;
+          const maxlon = center.lng + 0.5;
+          const minlat = center.lat - 0.5;
+          const maxlat = center.lat + 0.5;
+          viewboxParam = `&viewbox=${minlon},${minlat},${maxlon},${maxlat}&bounded=0`;
+        } catch (_) {}
+
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&accept-language=uz&limit=5&q=${encodeURIComponent(mapSearchQuery.trim())}`
+            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=uz&accept-language=uz&limit=5${viewboxParam}&q=${encodeURIComponent(mapSearchQuery.trim())}`
           );
           const data = await response.json();
           if (data && data.length > 0) {
