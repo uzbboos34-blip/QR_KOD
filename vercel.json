@@ -6,7 +6,7 @@
       "destination": "https://telegra.ph/upload"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
