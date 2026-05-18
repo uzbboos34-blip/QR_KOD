@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import QRCode from "qrcode";
 import axios from "axios";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
